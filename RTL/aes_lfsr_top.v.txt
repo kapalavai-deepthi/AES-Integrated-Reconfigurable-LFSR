@@ -1,0 +1,111 @@
+module aes_lfsr_topp;
+
+reg clk, rst, start, select;
+reg [1:0] mode;
+reg [127:0] plaintext, key;
+
+wire [127:0] ciphertext;
+wire done;
+wire [127:0] lfsr_out;
+
+integer i;
+
+parameter INIT_SEED = 128'h9F3A7C5E1D2B4A68C7E9F1023B5D6A8C;
+
+// AES
+AES aes_inst(
+    .clk(clk),
+    .rst(rst),
+    .plaintext(plaintext),
+    .key(key),
+    .start(start),
+    .chiphertext(ciphertext),
+    .done(done)
+);
+
+// LFSR
+reconfigurable_lfsr #(128) lfsr_inst(
+    .clk(clk),
+    .rst(rst),
+    .mode(mode),
+    .select(select),
+    .seed(ciphertext),
+    .out(lfsr_out)
+);
+
+// clock
+always #5 clk = ~clk;
+
+initial begin
+    clk = 0;
+    rst = 1;
+    start = 0;
+    select = 0;
+    mode = 2'b00;
+
+    plaintext = 128'h00000000000000000000000000000000;
+    key       = 128'h00000000000000000000000000000000;
+
+    // reset once
+    #10 rst = 0;
+
+    // start AES
+    #10 start = 1;
+    #10 start = 0;
+
+    // ---------------- MODE 00 ----------------
+    mode = 2'b00;
+    lfsr_inst.lfsr = INIT_SEED;
+    @(posedge clk);
+    for(i=0;i<4;i=i+1) begin
+        $display("MODE00 -> %h", lfsr_out);
+        @(posedge clk);
+    end
+
+    // ---------------- MODE 01 ----------------
+    mode = 2'b01;
+    lfsr_inst.lfsr = INIT_SEED;
+    @(posedge clk);
+    for(i=0;i<4;i=i+1) begin
+        $display("MODE01 -> %h", lfsr_out);
+        @(posedge clk);
+    end
+
+    // ---------------- MODE 10 ----------------
+    mode = 2'b10;
+    lfsr_inst.lfsr = INIT_SEED;
+    @(posedge clk);
+    for(i=0;i<4;i=i+1) begin
+        $display("MODE10 -> %h", lfsr_out);
+        @(posedge clk);
+    end
+
+    // ---------------- MODE 11 ----------------
+    wait(done);
+
+    mode = 2'b11;
+    lfsr_inst.lfsr = INIT_SEED;
+
+    @(posedge clk);
+    $display("MODE11 Before Load -> %h", lfsr_out);
+
+    // load ciphertext
+    select = 1;
+    @(posedge clk);
+    $display("Ciphertext Loaded -> %h", ciphertext);
+
+    select = 0;
+
+    // show loaded state
+    @(posedge clk);
+    $display("MODE11 -> %h", lfsr_out);
+
+    // continue sequence from ciphertext
+    for(i=0;i<4;i=i+1) begin
+        @(posedge clk);
+        $display("MODE11 -> %h", lfsr_out);
+    end
+
+    $finish;
+endendmodule
+

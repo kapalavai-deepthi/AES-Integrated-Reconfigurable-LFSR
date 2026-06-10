@@ -1,0 +1,70 @@
+module reconfigurable_lfsr
+#(parameter N = 128)   // Change N for 2?11 bits
+(
+    input clk,
+    input rst,
+    input [1:0] mode,        // 00-Internal, 01-External, 10-Complete, 11-Reseeding
+    input select,            // Used in reseeding mode
+    input [N-1:0] seed,
+    output [N-1:0] out
+);
+
+reg [N-1:0] lfsr;
+wire feedback;
+wire zero_detect;
+
+// -----------------------------------------
+// Example taps for polynomial: 1 + x^2 + x^3
+// (Modify taps according to your polynomial)
+// -----------------------------------------
+
+assign feedback = lfsr[N-1] ^ lfsr[6] ^ lfsr[1] ^ lfsr[0];  // XOR taps
+
+// Zero detector for Complete LFSR
+assign zero_detect = ~(|lfsr);  // NOR of all bits
+
+always @(posedge clk or posedge rst)
+begin
+    if (rst)
+     lfsr <= 128'h0000000000000000000000000000000;
+
+    else
+    begin
+        case(mode)
+
+        // ----------------------------
+        // 00 - Internal (Galois)
+        // ----------------------------
+        2'b00:
+            lfsr <= {lfsr[N-2:0], feedback};
+
+        // ----------------------------
+        // 01 - External (Standard)
+        // ----------------------------
+        2'b01:
+            lfsr <= {feedback, lfsr[N-1:1]};
+
+        // ----------------------------
+        // 10 - Complete LFSR
+        // ----------------------------
+        2'b10:
+            lfsr <= {lfsr[N-2:0], (feedback ^ zero_detect)};
+
+        // ----------------------------
+        // 11 - Reseeding LFSR
+        // ----------------------------
+        2'b11:
+        begin
+            if (select)
+                lfsr <= seed;    // Load new seed
+            else
+                lfsr <= {lfsr[N-2:0], feedback};
+        end
+
+        endcase
+    end
+end
+
+assign out = lfsr;
+
+endmodule

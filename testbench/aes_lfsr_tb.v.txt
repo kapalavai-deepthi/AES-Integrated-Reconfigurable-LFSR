@@ -1,0 +1,48 @@
+module tb_lfsr;
+
+reg clk;
+reg rst;
+reg [1:0] mode;
+reg select;
+reg [127:0] seed;
+wire [127:0] out;
+
+reconfigurable_lfsr #(128) uut (
+    .clk(clk),
+    .rst(rst),
+    .mode(mode),
+    .select(select),
+    .seed(seed),
+    .out(out)
+);
+
+always #5 clk = ~clk;
+always @(posedge clk)
+$display("time=%0t select=%d mode=%b out=%h ", $time,select, mode, out[127:0]);
+initial
+begin
+    clk = 0;
+    rst = 1;
+   seed = 128'hACE1ACE1ACE1ACE1ACE1ACE1ACE1ACE1;
+    mode = 2'b00;
+    select = 0;
+
+    #10 rst = 0;
+
+    // Internal
+    #50 mode = 2'b01;
+
+    // External
+    #50 mode = 2'b10;
+
+    // Complete
+    #50 mode = 2'b11;
+    select = 1;   // Load seed
+    #10 select = 0;
+
+    #100 $finish;
+end
+
+endmodule
+
+
