@@ -1,4 +1,4 @@
-# AES Based Reconfigurable LFSR Encryption System
+# AES Based Reconfigurable LFSR 
 
 ## Overview
 
