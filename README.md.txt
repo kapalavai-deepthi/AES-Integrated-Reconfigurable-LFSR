@@ -1,5 +1,10 @@
 # AES Based Reconfigurable LFSR Encryption System
 
+## Architecture
+
+![Architecture](docs/system_architecture.png)
+
+
 ## Overview
 
 This project implements a 128-bit AES encryption core integrated with a Reconfigurable LFSR.
